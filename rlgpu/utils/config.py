@@ -25,7 +25,7 @@ def set_np_formatting():
 
 def warn_task_name():
     raise Exception(
-        "Unrecognized task!\nTask should be one of: [BallBalance, Cartpole, CartpoleYUp, Ant, Humanoid, Anymal, FrankaCabinet, Quadcopter, ShadowHand, ShadowHandLSTM, ShadowHandFFOpenAI, ShadowHandFFOpenAITest, ShadowHandOpenAI, ShadowHandOpenAITest, Ingenuity]")
+        "Unrecognized task!\nTask should be one of: [BallBalance, Cartpole, CartpoleYUp, Ant, AntPush, Humanoid, Anymal, FrankaCabinet, Quadcopter, ShadowHand, ShadowHandLSTM, ShadowHandFFOpenAI, ShadowHandFFOpenAITest, ShadowHandOpenAI, ShadowHandOpenAITest, Ingenuity]")
 
 
 def set_seed(seed, torch_deterministic=False):
@@ -65,6 +65,8 @@ def retrieve_cfg(args, use_rlg_config=False):
             return os.path.join(args.logdir, "cartpole_y_up"), "cfg/train/rlg/rlg_cartpole.yaml", "cfg/cartpole.yaml"
         elif args.task == "Ant":
             return os.path.join(args.logdir, "ant"), "cfg/train/rlg/rlg_ant.yaml", "cfg/ant.yaml"
+        elif args.task == "AntPush":
+            return os.path.join(args.logdir, "ant_push"), "cfg/train/rlg/rlg_ant_push.yaml", "cfg/ant_push.yaml"
         elif args.task == "Humanoid":
             return os.path.join(args.logdir, "humanoid"), "cfg/train/rlg/rlg_humanoid.yaml", "cfg/humanoid.yaml"
         elif args.task == "FrankaCabinet":
@@ -107,6 +109,8 @@ def retrieve_cfg(args, use_rlg_config=False):
             return os.path.join(args.logdir, "cartpole_y_up"), "cfg/train/rlpt/pytorch_ppo_cartpole.yaml", "cfg/cartpole.yaml"
         elif args.task == "Ant":
             return os.path.join(args.logdir, "ant"), "cfg/train/rlpt/pytorch_ppo_ant.yaml", "cfg/ant.yaml"
+        elif args.task == "AntPush":
+            return os.path.join(args.logdir, "ant_push"), "cfg/train/rlpt/pytorch_ppo_ant_push.yaml", "cfg/ant_push.yaml"
         elif args.task == "Humanoid":
             return os.path.join(args.logdir, "humanoid"), "cfg/train/rlpt/pytorch_ppo_humanoid.yaml", "cfg/humanoid.yaml"
         elif args.task == "FrankaCabinet":
@@ -270,7 +274,7 @@ def get_args(benchmark=False, use_rlg_config=False):
         {"name": "--horovod", "action": "store_true", "default": False,
             "help": "Use horovod for multi-gpu training, have effect only with rl_games RL library"},
         {"name": "--task", "type": str, "default": "Humanoid",
-            "help": "Can be BallBalance, Cartpole, CartpoleYUp, Ant, Humanoid, Anymal, FrankaCabinet, Quadcopter, ShadowHand, Ingenuity"},
+            "help": "Can be BallBalance, Cartpole, CartpoleYUp, Ant, AntPush, Humanoid, Anymal, FrankaCabinet, Quadcopter, ShadowHand, Ingenuity"},
         {"name": "--task_type", "type": str,
             "default": "Python", "help": "Choose Python or C++"},
         {"name": "--rl_device", "type": str, "default": "cuda:0",
