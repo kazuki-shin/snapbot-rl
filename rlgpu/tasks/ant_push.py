@@ -88,6 +88,16 @@ class AntPush(BaseTask):
 
         self.dof_position_targets = torch.zeros((self.num_envs, dofs_per_env), dtype=torch.float32, device=self.device, requires_grad=False)
 
+        ant_xy = self.root_states[..., 0, 0:2] 
+        ant_rotation = self.root_states[..., 0, 3:7]
+        ant_theta = get_euler_xyz(ant_rotation)[2] # extract z axis from quat 
+        self.ant_positions = torch.cat((ant_xy, ant_theta.unsqueeze(1)), 1) # (x,y,theta)
+        
+        box_xy = self.root_states[..., 1, 0:2] 
+        box_rotation = self.root_states[..., 1, 3:7]
+        box_theta = get_euler_xyz(box_rotation)[2] # extract z axis from quat 
+        self.box_positions = torch.cat((box_xy, box_theta.unsqueeze(1)), 1) # (x,y,theta)
+
 
     def create_sim(self):
         # set z-axis as the upaxis in sim
@@ -205,24 +215,7 @@ class AntPush(BaseTask):
         self.gym.refresh_actor_root_state_tensor(self.sim)
         self.gym.refresh_force_sensor_tensor(self.sim)
 
-        ant_xy = self.root_states[..., 0, 0:2] 
-        ant_rotation = self.root_states[..., 0, 3:7]
-        ant_theta = get_euler_xyz(ant_rotation)[2] # extract z axis from quat 
-        self.ant_positions = torch.cat((ant_xy, ant_theta.unsqueeze(1)), 1) # (x,y,theta)
-        
-        box_xy = self.root_states[..., 1, 0:2] 
-        box_rotation = self.root_states[..., 1, 3:7]
-        box_theta = get_euler_xyz(box_rotation)[2] # extract z axis from quat 
-        self.box_positions = torch.cat((box_xy, box_theta.unsqueeze(1)), 1) # (x,y,theta)
-
-        self.obs_buf[..., 0:3] = self.ant_positions 
-        self.obs_buf[..., 3:6] = self.box_positions
-
-        if self.progress_buf[0] %100 == 0:
-            print("~!~!~!~! Computing obs")
-            print("Ant/Box pos", self.obs_buf)
-            # print(self.dof_states[0])
-        return self.obs_buf
+        self.obs_buf[:], self.ant_positions[:], self.box_positions[:] = compute_ant_observations(self.obs_buf, self.root_states, self.progress_buf)
 
     def reset(self, env_ids):
         self.root_states[env_ids] = self.initial_root_states[env_ids]
@@ -266,3 +259,25 @@ def compute_ant_reward(ant_positions, box_positions, reset_buf, progress_buf):
     reward = 1
     reset = torch.where(ant_positions[..., 0] > 1, torch.ones_like(reset_buf), reset_buf)
     return reward, reset
+
+@torch.jit.script
+def compute_ant_observations(obs_buf, root_states, progress_buf):
+    ant_xy = root_states[..., 0, 0:2] 
+    ant_rotation = root_states[..., 0, 3:7]
+    ant_theta = get_euler_xyz(ant_rotation)[2] # extract z axis from quat 
+    ant_positions = torch.cat((ant_xy, ant_theta.unsqueeze(1)), 1) # (x,y,theta)
+    
+    box_xy = root_states[..., 1, 0:2] 
+    box_rotation = root_states[..., 1, 3:7]
+    box_theta = get_euler_xyz(box_rotation)[2] # extract z axis from quat 
+    box_positions = torch.cat((box_xy, box_theta.unsqueeze(1)), 1) # (x,y,theta)
+
+    obs_buf[..., 0:3] = ant_positions 
+    obs_buf[..., 3:6] = box_positions
+
+    if progress_buf[0] %100 == 0:
+        print("~!~!~!~! Computing obs")
+        print("Ant/Box pos", obs_buf)
+        # print(self.dof_states[0])
+
+    return obs_buf, ant_positions, box_positions
