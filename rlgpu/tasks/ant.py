@@ -72,6 +72,9 @@ class Ant(BaseTask):
         self.initial_root_states = self.root_states.clone()
         self.initial_root_states[:, 7:13] = 0  # set lin_vel and ang_vel to 0
 
+        import ipdb
+        ipdb.set_trace()
+
         # create some wrapper tensors for different slices
         self.dof_state = gymtorch.wrap_tensor(dof_state_tensor)
         self.dof_pos = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 0]
