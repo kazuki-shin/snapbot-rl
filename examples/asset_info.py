@@ -140,10 +140,11 @@ print("Working directory: %s" % os.getcwd())
 asset_root = "../../assets"
 
 # List of assets that will be loaded, both URDF and MJCF files are supported
-asset_files = ["urdf/cartpole.urdf",
-               "urdf/franka_description/robots/franka_panda.urdf",
-               "mjcf/nv_ant.xml"]
-asset_names = ["cartpole", "franka", "ant"]
+#asset_files = ["urdf/cartpole.urdf",
+#               "urdf/franka_description/robots/franka_panda.urdf",
+#               "mjcf/nv_ant.xml"]
+asset_files = ["mjcf/snapbot_description/robot.xml"]
+asset_names = ["robot"]
 loaded_assets = []
 
 # Load the assets and ensure that we are successful

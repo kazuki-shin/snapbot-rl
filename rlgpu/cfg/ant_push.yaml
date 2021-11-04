@@ -1,6 +1,6 @@
 # if given, will override the device setting in gym. 
 env: 
-  numEnvs: 16
+  numEnvs: 64
   envSpacing: 5
   episodeLength: 1000
   enableDebugVis: False
@@ -34,7 +34,7 @@ sim:
   substeps: 2
 
   physx:
-    num_threads: 4
+    num_threads: 8
     solver_type: 1  # 0: pgs, 1: tgs
     num_position_iterations: 4
     num_velocity_iterations: 0

@@ -4,7 +4,7 @@ env:
   envSpacing: 2.0
   maxEpisodeLength: 500
   actionSpeedScale: 20
-  enableDebugVis: False
+  enableDebugVis: True
 
   asset:
     assetRoot: "../../assets"
