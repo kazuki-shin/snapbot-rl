@@ -42,12 +42,18 @@ plane_params.restitution = 0
 gym.add_ground(sim, plane_params)
 
 asset_root = "../../assets"
-asset_file = "mjcf/nv_ant.xml"
-# asset_file = "mjcf/snapbot_description/robot.xml"
-asset = gym.load_asset(sim, asset_root, asset_file)
+asset_file = "mjcf/nv_ant_snap.xml"
+# asset_file = "mjcf/snapbot/snapbot_4/robot_4_1245.xml"
+asset_options = gymapi.AssetOptions()
+asset_options.mesh_normal_mode = gymapi.COMPUTE_PER_VERTEX
+asset_options.use_mesh_materials = True
+asset_options.vhacd_enabled = True
+asset_options.vhacd_params = gymapi.VhacdParams()
+asset_options.vhacd_params.resolution = 10000
+asset = gym.load_asset(sim, asset_root, asset_file, asset_options)
 
 # set up the env grid
-num_envs = 1
+num_envs = 9
 envs_per_row = 3
 env_spacing = 2.0
 env_lower = gymapi.Vec3(-env_spacing, -env_spacing, 0.0)
@@ -62,10 +68,10 @@ for i in range(num_envs):
     env = gym.create_env(sim, env_lower, env_upper, envs_per_row)
     envs.append(env)
 
-    height = random.uniform(1.0, 2.5)
+    # height = random.uniform(1.0, 2.5)
 
     pose = gymapi.Transform()
-    pose.p = gymapi.Vec3(0.0, 0.0, height)
+    pose.p = gymapi.Vec3(0.0, 0.0, 1.0)
 
     actor_handle = gym.create_actor(env, asset, pose, "Snapbot", i, 1)
     actor_handles.append(actor_handle)

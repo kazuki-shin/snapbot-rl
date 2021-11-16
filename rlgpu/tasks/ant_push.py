@@ -152,7 +152,7 @@ class AntPush(BaseTask):
 
         # starting pose of box object
         box_start_pose = gymapi.Transform()
-        box_start_pose.p = gymapi.Vec3(5.0, 5.0, 3.0)
+        box_start_pose.p = gymapi.Vec3(5.0, 5.0, 0.5)
         # load box asset
         box_asset = self.gym.create_box(self.sim, width, height, depth, asset_options)
 
@@ -215,7 +215,12 @@ class AntPush(BaseTask):
         self.gym.refresh_actor_root_state_tensor(self.sim)
         self.gym.refresh_force_sensor_tensor(self.sim)
 
-        self.obs_buf[:], self.ant_positions[:], self.box_positions[:] = compute_ant_observations(self.obs_buf, self.root_states, self.progress_buf)
+        self.obs_buf[:], self.ant_positions[:], self.box_positions[:] = compute_ant_observations(self.obs_buf, self.root_states)
+
+        if self.progress_buf[0] %1000 == 0:
+            print("~!~!~!~! Computing obs")
+            print("Ant/Box pos E1", self.obs_buf[0])
+            print("DoF states E1",self.dof_states[0])
 
     def reset(self, env_ids):
         self.root_states[env_ids] = self.initial_root_states[env_ids]
@@ -255,13 +260,23 @@ class AntPush(BaseTask):
 
 
 @torch.jit.script
-def compute_ant_reward(ant_positions, box_positions, reset_buf, progress_buf):
+def compute_ant_reward(
+    ant_positions, 
+    box_positions, 
+    reset_buf, 
+    progress_buf):
+
     reward = 1
-    reset = torch.where(ant_positions[..., 0] > 1, torch.ones_like(reset_buf), reset_buf)
+
+    # reset agents
+    # reset = torch.where(ant_positions[:,1] < termination_height, torch.ones_like(reset_buf), reset_buf)
+    # reset = torch.where(progress_buf >= max_episode_length - 1, torch.ones_like(reset_buf), reset)
+    reset = 0
+
     return reward, reset
 
 @torch.jit.script
-def compute_ant_observations(obs_buf, root_states, progress_buf):
+def compute_ant_observations(obs_buf, root_states):
     ant_xy = root_states[..., 0, 0:2] 
     ant_rotation = root_states[..., 0, 3:7]
     ant_theta = get_euler_xyz(ant_rotation)[2] # extract z axis from quat 
@@ -274,10 +289,5 @@ def compute_ant_observations(obs_buf, root_states, progress_buf):
 
     obs_buf[..., 0:3] = ant_positions 
     obs_buf[..., 3:6] = box_positions
-
-    if progress_buf[0] %100 == 0:
-        print("~!~!~!~! Computing obs")
-        print("Ant/Box pos", obs_buf)
-        # print(self.dof_states[0])
 
     return obs_buf, ant_positions, box_positions

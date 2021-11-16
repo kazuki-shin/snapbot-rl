@@ -143,7 +143,8 @@ asset_root = "../../assets"
 #asset_files = ["urdf/cartpole.urdf",
 #               "urdf/franka_description/robots/franka_panda.urdf",
 #               "mjcf/nv_ant.xml"]
-asset_files = ["mjcf/snapbot_description/robot.xml"]
+# asset_files = ["mjcf/snapbot/snapbot_4/robot_4_1245.xml"]
+asset_files = ["mjcf/nv_ant_snap.xml"]
 asset_names = ["robot"]
 loaded_assets = []
 
