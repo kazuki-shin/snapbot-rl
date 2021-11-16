@@ -62,16 +62,19 @@ class AntPush(BaseTask):
 
         # get gym GPU state tensors
         actors_per_env = 2
-        dofs_per_env = 8 # why 8? 
+        dofs_per_env = 8  # why 8?
         sensors_per_env = 4
 
         self.root_tensor = self.gym.acquire_actor_root_state_tensor(self.sim)
         self.dof_state_tensor = self.gym.acquire_dof_state_tensor(self.sim)
         self.sensor_tensor = self.gym.acquire_force_sensor_tensor(self.sim)
 
-        vec_root_tensor = gymtorch.wrap_tensor(self.root_tensor).view(self.num_envs, actors_per_env, 13)
-        vec_dof_tensor = gymtorch.wrap_tensor(self.dof_state_tensor).view(self.num_envs, dofs_per_env, 2)
-        self.vec_sensor_tensor = gymtorch.wrap_tensor(self.sensor_tensor).view(self.num_envs, sensors_per_env, 6)
+        vec_root_tensor = gymtorch.wrap_tensor(
+            self.root_tensor).view(self.num_envs, actors_per_env, 13)
+        vec_dof_tensor = gymtorch.wrap_tensor(
+            self.dof_state_tensor).view(self.num_envs, dofs_per_env, 2)
+        self.vec_sensor_tensor = gymtorch.wrap_tensor(
+            self.sensor_tensor).view(self.num_envs, sensors_per_env, 6)
 
         self.gym.refresh_dof_state_tensor(self.sim)
         self.gym.refresh_actor_root_state_tensor(self.sim)
@@ -86,27 +89,31 @@ class AntPush(BaseTask):
         self.initial_root_states = self.root_states.clone()
         self.initial_dof_states = self.dof_states.clone()
 
-        self.dof_position_targets = torch.zeros((self.num_envs, dofs_per_env), dtype=torch.float32, device=self.device, requires_grad=False)
+        self.dof_position_targets = torch.zeros(
+            (self.num_envs, dofs_per_env), dtype=torch.float32, device=self.device, requires_grad=False)
 
-        ant_xy = self.root_states[..., 0, 0:2] 
+        ant_xy = self.root_states[..., 0, 0:2]
         ant_rotation = self.root_states[..., 0, 3:7]
-        ant_theta = get_euler_xyz(ant_rotation)[2] # extract z axis from quat 
-        self.ant_positions = torch.cat((ant_xy, ant_theta.unsqueeze(1)), 1) # (x,y,theta)
-        
-        box_xy = self.root_states[..., 1, 0:2] 
-        box_rotation = self.root_states[..., 1, 3:7]
-        box_theta = get_euler_xyz(box_rotation)[2] # extract z axis from quat 
-        self.box_positions = torch.cat((box_xy, box_theta.unsqueeze(1)), 1) # (x,y,theta)
+        ant_theta = get_euler_xyz(ant_rotation)[2]  # extract z axis from quat
+        self.ant_positions = torch.cat(
+            (ant_xy, ant_theta.unsqueeze(1)), 1)  # (x,y,theta)
 
+        box_xy = self.root_states[..., 1, 0:2]
+        box_rotation = self.root_states[..., 1, 3:7]
+        box_theta = get_euler_xyz(box_rotation)[2]  # extract z axis from quat
+        self.box_positions = torch.cat(
+            (box_xy, box_theta.unsqueeze(1)), 1)  # (x,y,theta)
 
     def create_sim(self):
         # set z-axis as the upaxis in sim
         self.up_axis_idx = self.set_sim_params_up_axis(self.sim_params, 'z')
-        self.sim = super().create_sim(self.device_id, self.graphics_device_id, self.physics_engine, self.sim_params)
+        self.sim = super().create_sim(self.device_id, self.graphics_device_id,
+                                      self.physics_engine, self.sim_params)
 
         # create ground plane and all training envs
         self._create_ground_plane()
-        self._create_envs(self.num_envs, self.cfg["env"]['envSpacing'], int(np.sqrt(self.num_envs)))
+        self._create_envs(
+            self.num_envs, self.cfg["env"]['envSpacing'], int(np.sqrt(self.num_envs)))
 
     def _create_ground_plane(self):
         plane_params = gymapi.PlaneParams()
@@ -127,7 +134,8 @@ class AntPush(BaseTask):
         asset_options.angular_damping = 0.0
 
         # load ant asset
-        ant_asset = self.gym.load_asset(self.sim, asset_root, asset_file, asset_options)
+        ant_asset = self.gym.load_asset(
+            self.sim, asset_root, asset_file, asset_options)
         self.num_dof = self.gym.get_asset_dof_count(ant_asset)
         self.num_bodies = self.gym.get_asset_rigid_body_count(ant_asset)
 
@@ -137,13 +145,16 @@ class AntPush(BaseTask):
 
         # start pose of ant
         ant_start_pose = gymapi.Transform()
-        ant_start_pose.p = gymapi.Vec3(*get_axis_params(0.44, self.up_axis_idx))
+        ant_start_pose.p = gymapi.Vec3(
+            *get_axis_params(0.44, self.up_axis_idx))
 
         self.torso_index = 0
         self.num_bodies = self.gym.get_asset_rigid_body_count(ant_asset)
-        body_names = [self.gym.get_asset_rigid_body_name(ant_asset, i) for i in range(self.num_bodies)]
+        body_names = [self.gym.get_asset_rigid_body_name(
+            ant_asset, i) for i in range(self.num_bodies)]
         extremity_names = [s for s in body_names if "foot" in s]
-        self.extremities_index = torch.zeros(len(extremity_names), dtype=torch.long, device=self.device)
+        self.extremities_index = torch.zeros(
+            len(extremity_names), dtype=torch.long, device=self.device)
 
         # set box asset information  (density, dim)
         asset_options = gymapi.AssetOptions()
@@ -154,7 +165,8 @@ class AntPush(BaseTask):
         box_start_pose = gymapi.Transform()
         box_start_pose.p = gymapi.Vec3(5.0, 5.0, 3.0)
         # load box asset
-        box_asset = self.gym.create_box(self.sim, width, height, depth, asset_options)
+        box_asset = self.gym.create_box(
+            self.sim, width, height, depth, asset_options)
 
         # handles to keep track of actors and envs
         self.ant_handles = []
@@ -168,13 +180,17 @@ class AntPush(BaseTask):
         for i in range(self.num_envs):
             # create env instance
             env_ptr = self.gym.create_env(self.sim, lower, upper, num_per_row)
-            ant_handle = self.gym.create_actor(env_ptr, ant_asset, ant_start_pose, "ant", i, 1, 0)
-            box_handle = self.gym.create_actor(env_ptr, box_asset, box_start_pose, "box", i, 0, 0)
+            ant_handle = self.gym.create_actor(
+                env_ptr, ant_asset, ant_start_pose, "ant", i, 1, 0)
+            box_handle = self.gym.create_actor(
+                env_ptr, box_asset, box_start_pose, "box", i, 0, 0)
 
             env_sensors = []
             for extr in extremity_names:
-                extr_handle = self.gym.find_actor_rigid_body_handle(env_ptr, ant_handle, extr)
-                env_sensors.append(self.gym.create_force_sensor(env_ptr, extr_handle, sensor_pose))
+                extr_handle = self.gym.find_actor_rigid_body_handle(
+                    env_ptr, ant_handle, extr)
+                env_sensors.append(self.gym.create_force_sensor(
+                    env_ptr, extr_handle, sensor_pose))
                 self.sensors.append(env_sensors)
 
             # set color of ants to orange
@@ -182,7 +198,8 @@ class AntPush(BaseTask):
                 self.gym.set_rigid_body_color(
                     env_ptr, ant_handle, j, gymapi.MESH_VISUAL, gymapi.Vec3(0.97, 0.38, 0.06))
 
-            self.gym.set_rigid_body_color(env_ptr, box_handle, 0, gymapi.MESH_VISUAL, gymapi.Vec3(0.06, 0.38, 0.97))
+            self.gym.set_rigid_body_color(
+                env_ptr, box_handle, 0, gymapi.MESH_VISUAL, gymapi.Vec3(0.06, 0.38, 0.97))
 
             self.envs.append(env_ptr)
             self.ant_handles.append(ant_handle)
@@ -197,16 +214,19 @@ class AntPush(BaseTask):
                 self.dof_limits_lower.append(dof_prop['lower'][j])
                 self.dof_limits_upper.append(dof_prop['upper'][j])
 
-        self.dof_limits_lower = to_torch(self.dof_limits_lower, device=self.device)
-        self.dof_limits_upper = to_torch(self.dof_limits_upper, device=self.device)
+        self.dof_limits_lower = to_torch(
+            self.dof_limits_lower, device=self.device)
+        self.dof_limits_upper = to_torch(
+            self.dof_limits_upper, device=self.device)
 
         for i in range(len(extremity_names)):
-            self.extremities_index[i] = self.gym.find_actor_rigid_body_handle(self.envs[0], self.ant_handles[0], extremity_names[i])
+            self.extremities_index[i] = self.gym.find_actor_rigid_body_handle(
+                self.envs[0], self.ant_handles[0], extremity_names[i])
 
     def compute_reward(self):
-         self.rew_buf[:], self.reset_buf[:] = compute_ant_reward(
+        self.rew_buf[:], self.reset_buf[:] = compute_ant_reward(
             self.ant_positions,
-            self.box_positions, 
+            self.box_positions,
             self.reset_buf,
             self.progress_buf)
 
@@ -215,21 +235,21 @@ class AntPush(BaseTask):
         self.gym.refresh_actor_root_state_tensor(self.sim)
         self.gym.refresh_force_sensor_tensor(self.sim)
 
-        self.obs_buf[:], self.ant_positions[:], self.box_positions[:] = compute_ant_observations(self.obs_buf, self.root_states, self.progress_buf)
+        self.obs_buf[:], self.ant_positions[:], self.box_positions[:] = compute_ant_observations(
+            self.obs_buf, self.root_states, self.progress_buf)
 
     def reset(self, env_ids):
         self.root_states[env_ids] = self.initial_root_states[env_ids]
 
-         # reset root state for ants and boxes in selected envs
+        # reset root state for ants and boxes in selected envs
         self.gym.set_actor_root_state_tensor(self.sim, self.root_tensor)
-     
+
         # reset DOF states for bbots in selected envs
         self.dof_states[env_ids] = self.initial_dof_states[env_ids]
         self.gym.set_dof_state_tensor(self.sim, self.dof_state_tensor)
 
         self.reset_buf[env_ids] = 0
         self.progress_buf[env_ids] = 0
-        
 
     def pre_physics_step(self, actions):
         # resets
@@ -242,9 +262,8 @@ class AntPush(BaseTask):
         force_tensor = gymtorch.unwrap_tensor(forces)
         self.gym.set_dof_actuation_force_tensor(self.sim, force_tensor)
 
-
     def post_physics_step(self):
-        self.progress_buf += 1        
+        self.progress_buf += 1
 
         self.compute_observations()
         self.compute_reward()
@@ -257,25 +276,33 @@ class AntPush(BaseTask):
 @torch.jit.script
 def compute_ant_reward(ant_positions, box_positions, reset_buf, progress_buf):
     reward = 1
-    reset = torch.where(ant_positions[..., 0] > 1, torch.ones_like(reset_buf), reset_buf)
+    # calculate euclidean distance between ant and box
+    ant_box_dist = torch.sqrt(torch.square(ant_positions[..., 0] - box_positions[..., 0]) +
+                              torch.square(ant_positions[..., 1] - box_positions[..., 1]))
+    reward = 1.0 / (1.0 + ant_box_dist)
+    reset = torch.where(ant_positions[..., 0] >
+                        1, torch.ones_like(reset_buf), reset_buf)
     return reward, reset
+
 
 @torch.jit.script
 def compute_ant_observations(obs_buf, root_states, progress_buf):
-    ant_xy = root_states[..., 0, 0:2] 
+    ant_xy = root_states[..., 0, 0:2]
     ant_rotation = root_states[..., 0, 3:7]
-    ant_theta = get_euler_xyz(ant_rotation)[2] # extract z axis from quat 
-    ant_positions = torch.cat((ant_xy, ant_theta.unsqueeze(1)), 1) # (x,y,theta)
-    
-    box_xy = root_states[..., 1, 0:2] 
-    box_rotation = root_states[..., 1, 3:7]
-    box_theta = get_euler_xyz(box_rotation)[2] # extract z axis from quat 
-    box_positions = torch.cat((box_xy, box_theta.unsqueeze(1)), 1) # (x,y,theta)
+    ant_theta = get_euler_xyz(ant_rotation)[2]  # extract z axis from quat
+    ant_positions = torch.cat(
+        (ant_xy, ant_theta.unsqueeze(1)), 1)  # (x,y,theta)
 
-    obs_buf[..., 0:3] = ant_positions 
+    box_xy = root_states[..., 1, 0:2]
+    box_rotation = root_states[..., 1, 3:7]
+    box_theta = get_euler_xyz(box_rotation)[2]  # extract z axis from quat
+    box_positions = torch.cat(
+        (box_xy, box_theta.unsqueeze(1)), 1)  # (x,y,theta)
+
+    obs_buf[..., 0:3] = ant_positions
     obs_buf[..., 3:6] = box_positions
 
-    if progress_buf[0] %100 == 0:
+    if progress_buf[0] % 100 == 0:
         print("~!~!~!~! Computing obs")
         print("Ant/Box pos", obs_buf)
         # print(self.dof_states[0])
