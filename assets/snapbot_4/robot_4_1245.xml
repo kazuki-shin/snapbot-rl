@@ -1,0 +1,80 @@
+<mujoco model="snapbot">
+    <compiler inertiafromgeom="auto" angle="radian" coordinate="local"/>
+
+    <default>
+        <joint limited="true" armature="0.01"/>
+        <site type="sphere" rgba=".5 .5 .5 1" size="0.01"/>
+        <tendon rgba="0.45 0.1 0 1" width="0.002"/>
+        <geom contype="1" conaffinity="1" condim="3" margin="0.001" solref=".02 1" solimp=".8 .8 .01 0.5 2" density="1000"/>
+        <equality solref="0.0002 1" solimp="0.99 0.99 0.0001 0.5 2"/>
+        <general ctrlrange="-100 100" ctrllimited="true"/>
+    </default>
+
+    <option timestep="0.0002" iterations="50" solver="PGS" gravity="0 0 -9.81">
+        <!--<option timestep="0.0005" iterations="10" solver="PGS">-->
+        <flag energy="enable" gravity="enable"/>
+    </option>
+
+    <!--    <visual>-->
+           <!-- <rgba haze="0.15 0.25 0.35 1"/>-->
+    <!--        <map stiffness="700" shadowscale="0.5" fogstart="10" fogend="15" zfar="40" haze="0.3"/>-->
+    <!--        <quality shadowsize="2048" /> -->
+    <!--    </visual>-->
+
+    <asset>
+               <!-- <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="512"/>
+               <texture name="texplane" type="2d" builtin="checker" rgb1=".2 .3 .4" rgb2=".1 0.15 0.2"
+                   width="0.1" height="0.1" mark="cross" markrgb=".8 .8 .8"/>
+               <material name="matplane" reflectance="0.5" texture="texplane" texrepeat="0.001 0.001" texuniform="true"/> -->
+    </asset>
+       <compiler inertiafromgeom="auto" meshdir="./meshes" texturedir="./textures"/>
+    <compiler inertiafromgeom="auto" meshdir="./meshes"/>
+
+    <include file="asset.xml"/>
+
+    <worldbody>
+        <!--        <geom name="floor" pos="0 0 -0.300" size="0 0 1" type="plane" material="matplane"/>-->
+        <light directional="true" diffuse=".8 .8 .8" specular=".2 .2 .2" pos="0 0 0.5" dir="0 0 -1"/>
+        <include file="snapbot_4_1245.xml"/>
+    </worldbody>
+
+    <equality>
+        <connect active="true" name="equality_constraint1" anchor="0 -0.025 0" body1="Leg_module_1_4" body2="Leg_module_1_4bar"/>
+        <connect active="true" name="equality_constraint2" anchor="0 -0.025 0" body1="Leg_module_2_4" body2="Leg_module_2_4bar"/>
+        <!-- <connect active="true" name="equality_constraint3" anchor="0 -0.025 0" body1="Leg_module_3_4" body2="Leg_module_3_4bar"/> -->
+        <connect active="true" name="equality_constraint4" anchor="0 -0.025 0" body1="Leg_module_4_4" body2="Leg_module_4_4bar"/>
+        <connect active="true" name="equality_constraint5" anchor="0 -0.025 0" body1="Leg_module_5_4" body2="Leg_module_5_4bar"/>
+        <!-- <connect active="true" name="equality_constraint6" anchor="0 0.025 0" body1="Leg_module_6_4" body2="Leg_module_6_4bar"/> -->
+    </equality>
+
+    <actuator>
+        <!-- <general name="actuator1" ctrllimited="true" ctrlrange="-10 10" joint="camera_1"
+                 gainprm="0.0578" gear="47.2660957561"/> -->
+        <position name="actuator2" ctrllimited="true" ctrlrange="-10 10" joint="camera_2"
+                 kp="0.0578" gear="47.2660957561"/>
+        <position name="actuator3" ctrllimited="true" ctrlrange="-10 10" joint="leg_1_2"
+                 kp="0.0578" gear="47.2660957561"/>
+        <position name="actuator4" ctrllimited="true" ctrlrange="-10 10" joint="leg_1_3"
+                 kp="0.0578" gear="47.2660957561"/>
+        <position name="actuator5" ctrllimited="true" ctrlrange="-10 10" joint="leg_2_2"
+                 kp="0.0578" gear="47.2660957561"/>
+        <position name="actuator6" ctrllimited="true" ctrlrange="-10 10" joint="leg_2_3"
+                 kp="0.0578" gear="47.2660957561"/>
+        <!-- <general name="actuator7" ctrllimited="true" ctrlrange="-10 10" joint="leg_3_2"
+                 gainprm="0.0578" gear="47.2660957561"/>
+        <general name="actuator8" ctrllimited="true" ctrlrange="-10 10" joint="leg_3_3"
+                 gainprm="0.0578" gear="47.2660957561"/> -->
+        <position name="actuator9" ctrllimited="true" ctrlrange="-10 10" joint="leg_4_2"
+                 kp="0.0578" gear="47.2660957561"/>
+        <position name="actuator10" ctrllimited="true" ctrlrange="-10 10" joint="leg_4_3"
+                 kp="0.0578" gear="47.2660957561"/>
+        <position name="actuator11" ctrllimited="true" ctrlrange="-10 10" joint="leg_5_2"
+                 kp="0.0578" gear="47.2660957561"/>
+        <position name="actuator12" ctrllimited="true" ctrlrange="-10 10" joint="leg_5_3"
+                 kp="0.0578" gear="47.2660957561"/>
+        <!-- <general name="actuator13" ctrllimited="true" ctrlrange="-10 10" joint="leg_6_2"
+                 gainprm="0.0578" gear="47.2660957561"/>
+        <general name="actuator14" ctrllimited="true" ctrlrange="-10 10" joint="leg_6_3"
+                 gainprm="0.0578" gear="47.2660957561"/> -->
+    </actuator>
+</mujoco>

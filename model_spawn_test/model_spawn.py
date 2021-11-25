@@ -41,9 +41,9 @@ plane_params.restitution = 0
 # create the ground plane
 gym.add_ground(sim, plane_params)
 
-asset_root = "../../assets"
-asset_file = "mjcf/nv_ant_snap.xml"
-# asset_file = "mjcf/snapbot/snapbot_4/robot_4_1245.xml"
+asset_root = "../assets"
+# asset_file = "mjcf/nv_ant_snap.xml"
+asset_file = "snapbot_4/robot_4_1245.xml"
 asset_options = gymapi.AssetOptions()
 asset_options.mesh_normal_mode = gymapi.COMPUTE_PER_VERTEX
 asset_options.use_mesh_materials = True

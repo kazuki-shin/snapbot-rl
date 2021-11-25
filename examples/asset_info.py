@@ -137,14 +137,14 @@ if sim is None:
 print("Working directory: %s" % os.getcwd())
 
 # Path where assets are searched, relative to the current working directory
-asset_root = "../../assets"
+asset_root = "../assets"
 
 # List of assets that will be loaded, both URDF and MJCF files are supported
 #asset_files = ["urdf/cartpole.urdf",
 #               "urdf/franka_description/robots/franka_panda.urdf",
 #               "mjcf/nv_ant.xml"]
-# asset_files = ["mjcf/snapbot/snapbot_4/robot_4_1245.xml"]
-asset_files = ["mjcf/nv_ant_snap.xml"]
+asset_files = ["snapbot_4/robot_4_1245.xml"]
+# asset_files = ["mjcf/nv_ant_snap.xml"]
 asset_names = ["robot"]
 loaded_assets = []
 
