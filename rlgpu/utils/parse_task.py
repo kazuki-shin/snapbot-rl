@@ -10,7 +10,7 @@ from rlgpu.tasks.cartpole_y_up import CartpoleYUp
 from rlgpu.tasks.ball_balance import BallBalance
 from rlgpu.tasks.quadcopter import Quadcopter
 from rlgpu.tasks.ant import Ant
-from rlgpu.tasks.ant_push import AntPush
+from rlgpu.tasks.snap_push import SnapPush
 from rlgpu.tasks.humanoid import Humanoid
 from rlgpu.tasks.franka import FrankaCabinet
 from rlgpu.tasks.shadow_hand import ShadowHand

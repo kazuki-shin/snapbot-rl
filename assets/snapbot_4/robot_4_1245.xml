@@ -50,28 +50,28 @@
     <actuator>
         <!-- <general name="actuator1" ctrllimited="true" ctrlrange="-10 10" joint="camera_1"
                  gainprm="0.0578" gear="47.2660957561"/> -->
-        <position name="actuator2" ctrllimited="true" ctrlrange="-10 10" joint="camera_2"
-                 kp="0.0578" gear="47.2660957561"/>
-        <position name="actuator3" ctrllimited="true" ctrlrange="-10 10" joint="leg_1_2"
-                 kp="0.0578" gear="47.2660957561"/>
-        <position name="actuator4" ctrllimited="true" ctrlrange="-10 10" joint="leg_1_3"
-                 kp="0.0578" gear="47.2660957561"/>
-        <position name="actuator5" ctrllimited="true" ctrlrange="-10 10" joint="leg_2_2"
-                 kp="0.0578" gear="47.2660957561"/>
-        <position name="actuator6" ctrllimited="true" ctrlrange="-10 10" joint="leg_2_3"
-                 kp="0.0578" gear="47.2660957561"/>
+        <!-- <position name="actuator2" ctrllimited="true" ctrlrange="-10 10" joint="camera_2"
+                 kp="0.0578" gear="47.2660957561"/> -->
+        <motor name="actuator3" ctrllimited="true" ctrlrange="-10 10" joint="leg_1_2"
+                 gear="47.2660957561"/>
+        <motor name="actuator4" ctrllimited="true" ctrlrange="-10 10" joint="leg_1_3"
+                 gear="47.2660957561"/>
+        <motor name="actuator5" ctrllimited="true" ctrlrange="-10 10" joint="leg_2_2"
+                 gear="47.2660957561"/>
+        <motor name="actuator6" ctrllimited="true" ctrlrange="-10 10" joint="leg_2_3"
+                 gear="47.2660957561"/>
         <!-- <general name="actuator7" ctrllimited="true" ctrlrange="-10 10" joint="leg_3_2"
                  gainprm="0.0578" gear="47.2660957561"/>
         <general name="actuator8" ctrllimited="true" ctrlrange="-10 10" joint="leg_3_3"
                  gainprm="0.0578" gear="47.2660957561"/> -->
-        <position name="actuator9" ctrllimited="true" ctrlrange="-10 10" joint="leg_4_2"
-                 kp="0.0578" gear="47.2660957561"/>
-        <position name="actuator10" ctrllimited="true" ctrlrange="-10 10" joint="leg_4_3"
-                 kp="0.0578" gear="47.2660957561"/>
-        <position name="actuator11" ctrllimited="true" ctrlrange="-10 10" joint="leg_5_2"
-                 kp="0.0578" gear="47.2660957561"/>
-        <position name="actuator12" ctrllimited="true" ctrlrange="-10 10" joint="leg_5_3"
-                 kp="0.0578" gear="47.2660957561"/>
+        <motor name="actuator9" ctrllimited="true" ctrlrange="-10 10" joint="leg_4_2"
+                 gear="47.2660957561"/>
+        <motor name="actuator10" ctrllimited="true" ctrlrange="-10 10" joint="leg_4_3"
+                 gear="47.2660957561"/>
+        <motor name="actuator11" ctrllimited="true" ctrlrange="-10 10" joint="leg_5_2"
+                 gear="47.2660957561"/>
+        <motor name="actuator12" ctrllimited="true" ctrlrange="-10 10" joint="leg_5_3"
+                 gear="47.2660957561"/>
         <!-- <general name="actuator13" ctrllimited="true" ctrlrange="-10 10" joint="leg_6_2"
                  gainprm="0.0578" gear="47.2660957561"/>
         <general name="actuator14" ctrllimited="true" ctrlrange="-10 10" joint="leg_6_3"
