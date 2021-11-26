@@ -1,9 +1,9 @@
 # if given, will override the device setting in gym. 
 env: 
-  numEnvs: 2048
+  numEnvs: 4096
   envSpacing: 5
   episodeLength: 1000
-  enableDebugVis: True
+  enableDebugVis: False
 
   powerScale: 1.0
   controlFrequencyInv: 1 # 60 Hz
@@ -49,7 +49,7 @@ sim:
     warm_start: 0.25
 
 task:
-  randomize: True
+  randomize: False
   randomization_params:
     # specify which attributes to randomize for each actor type and property
     frequency: 600   # Define how many environment steps between generating new randomizations

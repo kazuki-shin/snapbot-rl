@@ -165,8 +165,8 @@ class Ant(BaseTask):
 
         # set box asset information  (density, dim)
         box_asset_options = gymapi.AssetOptions()
-        box_asset_options.density = 1.0
-        box_width = box_height = box_depth = 0.7
+        box_asset_options.density = 5.0
+        box_width = box_height = box_depth = 0.5
 
         # starting pose of box object
         box_asset = self.gym.create_box(
@@ -399,20 +399,20 @@ def compute_ant_reward(
     _sb_dist = torch.sqrt(torch.square(targets[...,0] - ego_pos[...,0]) + 
                                  torch.square(targets[...,1] - ego_pos[...,1]))
     sb_dist_reward = 1.0 / (1.0 + _sb_dist)
-    sb_dist_cost_scale = 0
+    sb_dist_cost_scale = 1
 
     # box2goal euclidian distance reward 
     _bg_dist =  torch.sqrt(torch.square(targets[...,0] - goals[...,0]) + 
                                  torch.square(targets[...,1] - goals[...,1]))
     bg_dist_reward = 1.0 / (1.0 + _bg_dist)
-    bg_dist_cost_scale = 0
+    bg_dist_cost_scale = 5  
 
     # total dist reward
     dist_reward = sb_dist_reward * sb_dist_cost_scale + \
                     bg_dist_reward * bg_dist_cost_scale
 
     total_reward = progress_reward + alive_reward + up_reward + heading_reward - \
-        actions_cost_scale * actions_cost - energy_cost_scale * electricity_cost - dof_at_limit_cost * joints_at_limit_cost_scale #+ dist_reward 
+        actions_cost_scale * actions_cost - energy_cost_scale * electricity_cost - dof_at_limit_cost * joints_at_limit_cost_scale + dist_reward 
 
 
     #print("\nprogress reward: ", progress_reward[0], 
