@@ -60,7 +60,7 @@ class Ant(BaseTask):
         dof_state_tensor = self.gym.acquire_dof_state_tensor(self.sim)
         sensor_tensor = self.gym.acquire_force_sensor_tensor(self.sim)
 
-        actors_per_env = 2
+        actors_per_env = 3
         dofs_per_env = self.num_dof
         sensors_per_env = 4
 
@@ -100,6 +100,10 @@ class Ant(BaseTask):
         box_pos = self.initial_root_states[:,1,0:3].clone()
         box_pos[:,2] = 0
         self.targets = box_pos
+
+        goal_pos = self.initial_root_states[:,2,0:3].clone()
+        goal_pos[:,2] = 0
+        self.goals = goal_pos
         # self.targets = to_torch([5, 0, 0], device=self.device).repeat((self.num_envs, 1))
         self.dt = 1./60.
         self.potentials = to_torch([-100./self.dt], device=self.device).repeat(self.num_envs)
@@ -128,12 +132,6 @@ class Ant(BaseTask):
 
         asset_root = "../../assets"
         asset_file = "mjcf/nv_ant.xml"
-        #asset_root = "../assets"
-        #asset_file = "snapbot_4/robot_4_1245.xml"
-
-        #if "asset" in self.cfg["env"]:
-        #    asset_root = self.cfg["env"]["asset"].get("assetRoot", asset_root)
-        #    asset_file = self.cfg["env"]["asset"].get("assetFileName", asset_file)
 
         asset_path = os.path.join(asset_root, asset_file)
         asset_root = os.path.dirname(asset_path)
@@ -142,11 +140,6 @@ class Ant(BaseTask):
         asset_options = gymapi.AssetOptions()
         asset_options.default_dof_drive_mode = gymapi.DOF_MODE_NONE
         asset_options.angular_damping = 0.0
-        asset_options.mesh_normal_mode = gymapi.COMPUTE_PER_VERTEX
-        asset_options.use_mesh_materials = True
-        asset_options.vhacd_enabled = True
-        asset_options.vhacd_params = gymapi.VhacdParams()
-        asset_options.vhacd_params.resolution = 10000
 
         ant_asset = self.gym.load_asset(self.sim, asset_root, asset_file, asset_options)
         self.num_dof = self.gym.get_asset_dof_count(ant_asset)
@@ -165,7 +158,6 @@ class Ant(BaseTask):
         self.num_bodies = self.gym.get_asset_rigid_body_count(ant_asset)
         body_names = [self.gym.get_asset_rigid_body_name(ant_asset, i) for i in range(self.num_bodies)]
         extremity_names = [s for s in body_names if "foot" in s]
-        #extremity_names = ["Leg_module_1_4", "Leg_module_2_4", "Leg_module_4_4", #"Leg_module_5_4"]
         self.extremities_index = torch.zeros(len(extremity_names), dtype=torch.long, device=self.device)
 
         # set box asset information  (density, dim)
@@ -179,6 +171,7 @@ class Ant(BaseTask):
 
         self.ant_handles = []
         self.obj_handles = []
+        self.goal_handles = []
         self.envs = []
         self.dof_limits_lower = []
         self.dof_limits_upper = []
@@ -196,8 +189,14 @@ class Ant(BaseTask):
             box_y = np.random.rand(1)[0] * 8
             box_start_pose.p = gymapi.Vec3(box_x, box_y, 0.5)
 
+            goal_start_pose = gymapi.Transform()
+            goal_x = np.random.rand(1)[0] * 8
+            goal_y = np.random.rand(1)[0] * 8
+            goal_start_pose.p = gymapi.Vec3(goal_x, goal_y, 0.5)
+
             ant_handle = self.gym.create_actor(env_ptr, ant_asset, start_pose, "ant", i, 1, 0)
             box_handle = self.gym.create_actor(env_ptr, box_asset, box_start_pose, "box", i, 0, 0)
+            goal_handle = self.gym.create_actor(env_ptr, box_asset, goal_start_pose, "box", i, 0, 0)
 
             env_sensors = []
             for extr in extremity_names:
@@ -243,7 +242,9 @@ class Ant(BaseTask):
             self.joints_at_limit_cost_scale,
             self.termination_height,
             self.death_cost,
-            self.max_episode_length
+            self.max_episode_length,
+            self.targets,
+            self.goals
         )
 
     def compute_observations(self):
@@ -288,6 +289,10 @@ class Ant(BaseTask):
         box_pos = self.initial_root_states[:,1,0:3].clone()
         box_pos[:,2] = 0
         self.targets = box_pos
+
+        goal_pos = self.initial_root_states[:,2,0:3].clone()
+        goal_pos[:,2] = 0
+        self.goals = goal_pos
 
         to_target = self.targets[env_ids] - self.initial_root_states[env_ids, 0, 0:3]
         to_target[:, 2] = 0.0
@@ -355,9 +360,11 @@ def compute_ant_reward(
     joints_at_limit_cost_scale,
     termination_height,
     death_cost,
-    max_episode_length
+    max_episode_length,
+    targets,
+    goals
 ):
-    # type: (Tensor, Tensor, Tensor, Tensor, float, float, Tensor, Tensor, float, float, float, float, float, float) -> Tuple[Tensor, Tensor]
+    # type: (Tensor, Tensor, Tensor, Tensor, float, float, Tensor, Tensor, float, float, float, float, float, float, Tensor, Tensor) -> Tuple[Tensor, Tensor]
 
     # reward from direction headed
     heading_weight_tensor = torch.ones_like(obs_buf[:, 11]) * heading_weight
@@ -375,6 +382,9 @@ def compute_ant_reward(
     # reward for duration of staying alive
     alive_reward = torch.ones_like(potentials) * 0.5
     progress_reward = potentials - prev_potentials
+
+    # distance reward 
+    dist_reward = targets - goals
 
     total_reward = progress_reward + alive_reward + up_reward + heading_reward - \
         actions_cost_scale * actions_cost - energy_cost_scale * electricity_cost - dof_at_limit_cost * joints_at_limit_cost_scale

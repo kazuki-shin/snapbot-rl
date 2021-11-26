@@ -5,7 +5,7 @@ env:
   episodeLength: 1000
   enableDebugVis: True
 
-  powerScale: 1.0
+  powerScale: 10.0
   controlFrequencyInv: 1 # 60 Hz
 
   # reward parameters
@@ -19,7 +19,7 @@ env:
   contactForceScale: 0.1
   jointsAtLimitCost: 0.1
   deathCost: -2.0
-  terminationHeight: 0.31
+  terminationHeight: 0.25
 
   plane:
     staticFriction: 1.0

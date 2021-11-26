@@ -41,7 +41,7 @@ class SnapPush(BaseTask):
         self.plane_dynamic_friction = self.cfg["env"]["plane"]["dynamicFriction"]
         self.plane_restitution = self.cfg["env"]["plane"]["restitution"]
 
-        self.cfg["env"]["numObservations"] = 60
+        self.cfg["env"]["numObservations"] = 80
         self.cfg["env"]["numActions"] = 8
 
         self.cfg["device_type"] = device_type
@@ -126,10 +126,10 @@ class SnapPush(BaseTask):
         lower = gymapi.Vec3(-spacing, -spacing, 0.0)
         upper = gymapi.Vec3(spacing, spacing, spacing)
 
-        asset_root = "../../assets"
-        asset_file = "mjcf/nv_ant.xml"
-        #asset_root = "../assets"
-        #asset_file = "snapbot_4/robot_4_1245.xml"
+        #asset_root = "../../assets"
+        #asset_file = "mjcf/nv_ant.xml"
+        asset_root = "../assets"
+        asset_file = "snapbot_4/robot_4_1245.xml"
 
         #if "asset" in self.cfg["env"]:
         #    asset_root = self.cfg["env"]["asset"].get("assetRoot", asset_root)
@@ -164,8 +164,8 @@ class SnapPush(BaseTask):
         self.torso_index = 0
         self.num_bodies = self.gym.get_asset_rigid_body_count(ant_asset)
         body_names = [self.gym.get_asset_rigid_body_name(ant_asset, i) for i in range(self.num_bodies)]
-        extremity_names = [s for s in body_names if "foot" in s]
-        #extremity_names = ["Leg_module_1_4", "Leg_module_2_4", "Leg_module_4_4", #"Leg_module_5_4"]
+        #extremity_names = [s for s in body_names if "foot" in s]
+        extremity_names = ["Leg_module_1_4", "Leg_module_2_4", "Leg_module_4_4", "Leg_module_5_4"]
         self.extremities_index = torch.zeros(len(extremity_names), dtype=torch.long, device=self.device)
 
         # set box asset information  (density, dim)
@@ -209,11 +209,19 @@ class SnapPush(BaseTask):
                 self.gym.set_rigid_body_color(
                     env_ptr, ant_handle, j, gymapi.MESH_VISUAL, gymapi.Vec3(0.97, 0.38, 0.06))
 
+            self.gym.set_actor_scale(env_ptr, ant_handle, 5)
+
             self.envs.append(env_ptr)
             self.ant_handles.append(ant_handle)
             self.obj_handles.append(box_handle)
 
         dof_prop = self.gym.get_actor_dof_properties(env_ptr, ant_handle)
+        
+        # change dof limits for non actuated joints
+        for k in [0,1,4,5,8,9,12,13,16,17]:
+            dof_prop['upper'][k] = 3.14
+            dof_prop['lower'][k] = -3.14
+
         for j in range(self.num_dof):
             if dof_prop['lower'][j] > dof_prop['upper'][j]:
                 self.dof_limits_lower.append(dof_prop['upper'][j])
@@ -221,6 +229,9 @@ class SnapPush(BaseTask):
             else:
                 self.dof_limits_lower.append(dof_prop['lower'][j])
                 self.dof_limits_upper.append(dof_prop['upper'][j])
+        
+        
+
 
         self.dof_limits_lower = to_torch(self.dof_limits_lower, device=self.device)
         self.dof_limits_upper = to_torch(self.dof_limits_upper, device=self.device)
@@ -251,7 +262,7 @@ class SnapPush(BaseTask):
         self.gym.refresh_actor_root_state_tensor(self.sim)
         self.gym.refresh_force_sensor_tensor(self.sim)
         #print("Feet forces and torques: ", self.vec_sensor_tensor[0, :])
-        # print(self.vec_sensor_tensor.shape)
+        #print(self.vec_sensor_tensor.shape)
 
         self.obs_buf[:], self.potentials[:], self.prev_potentials[:], self.up_vec[:], self.heading_vec[:] = compute_ant_observations(
             self.obs_buf, self.root_states, self.targets, self.potentials,
@@ -300,8 +311,16 @@ class SnapPush(BaseTask):
     def pre_physics_step(self, actions):
         self.actions = actions.clone().to(self.device)
         forces = self.actions * self.joint_gears * self.power_scale
-        force_tensor = gymtorch.unwrap_tensor(forces)
+        
+        indices = [2,3,6,7,10,11,14,15]
+        full_force = torch.zeros((forces.shape[0], 18), device=self.device, dtype=torch.float)
+        for i in range(len(indices)):
+            # import ipdb; ipdb.set_trace()
+            full_force[:,indices[i]] = forces[:,i]
+        force_tensor = gymtorch.unwrap_tensor(full_force)
+
         self.gym.set_dof_actuation_force_tensor(self.sim, force_tensor)
+
 
     def post_physics_step(self):
         self.progress_buf += 1
@@ -419,7 +438,6 @@ def compute_ant_observations(obs_buf, root_states, targets, potentials,
         torso_quat, velocity, ang_velocity, targets, torso_position)
 
     dof_pos_scaled = unscale(dof_pos, dof_limits_lower, dof_limits_upper)
-    # import ipdb; ipdb.set_trace()
 
     # obs_buf shapes: 1, 3, 3, 1, 1, 1, 1, 1, num_dofs(8), num_dofs(8), 24, num_dofs(8)
     obs = torch.cat((torso_position[:, up_axis_idx].view(-1, 1), vel_loc, angvel_loc,
