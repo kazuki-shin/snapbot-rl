@@ -97,6 +97,8 @@ class Ant(BaseTask):
         self.basis_vec0 = self.heading_vec.clone()
         self.basis_vec1 = self.up_vec.clone()
 
+        self.ego_pos = self.initial_root_states[:,0,0:3].clone()
+
         box_pos = self.initial_root_states[:,1,0:3].clone()
         box_pos[:,2] = 0
         self.targets = box_pos
@@ -104,6 +106,7 @@ class Ant(BaseTask):
         goal_pos = self.initial_root_states[:,2,0:3].clone()
         goal_pos[:,2] = 0
         self.goals = goal_pos
+
         # self.targets = to_torch([5, 0, 0], device=self.device).repeat((self.num_envs, 1))
         self.dt = 1./60.
         self.potentials = to_torch([-100./self.dt], device=self.device).repeat(self.num_envs)
@@ -208,9 +211,14 @@ class Ant(BaseTask):
                 self.gym.set_rigid_body_color(
                     env_ptr, ant_handle, j, gymapi.MESH_VISUAL, gymapi.Vec3(0.97, 0.38, 0.06))
 
+            self.gym.set_rigid_body_color(env_ptr, goal_handle, 0, gymapi.MESH_VISUAL, gymapi.Vec3(0.19, 0.65, 0.32))
+
+            self.gym.set_rigid_body_color(env_ptr, box_handle, 0, gymapi.MESH_VISUAL, gymapi.Vec3(0.72, 0.32, 0.41))
+
             self.envs.append(env_ptr)
             self.ant_handles.append(ant_handle)
             self.obj_handles.append(box_handle)
+            self.goal_handles.append(goal_handle)
 
         dof_prop = self.gym.get_actor_dof_properties(env_ptr, ant_handle)
         for j in range(self.num_dof):
@@ -244,7 +252,8 @@ class Ant(BaseTask):
             self.death_cost,
             self.max_episode_length,
             self.targets,
-            self.goals
+            self.goals,
+            self.ego_pos
         )
 
     def compute_observations(self):
@@ -284,6 +293,8 @@ class Ant(BaseTask):
         ant_indices = self.all_ant_indices[env_ids].flatten()
         self.dof_state[env_ids] = self.initial_dof_states[env_ids]
         self.gym.set_dof_state_tensor_indexed(self.sim, gymtorch.unwrap_tensor(self.dof_state), gymtorch.unwrap_tensor(ant_indices), len(ant_indices))
+
+        self.ego_pos = self.initial_root_states[:,0,0:3].clone()
 
         # set box positions as target positon
         box_pos = self.initial_root_states[:,1,0:3].clone()
@@ -362,9 +373,10 @@ def compute_ant_reward(
     death_cost,
     max_episode_length,
     targets,
-    goals
+    goals,
+    ego_pos
 ):
-    # type: (Tensor, Tensor, Tensor, Tensor, float, float, Tensor, Tensor, float, float, float, float, float, float, Tensor, Tensor) -> Tuple[Tensor, Tensor]
+    # type: (Tensor, Tensor, Tensor, Tensor, float, float, Tensor, Tensor, float, float, float, float, float, float, Tensor, Tensor, Tensor) -> Tuple[Tensor, Tensor]
 
     # reward from direction headed
     heading_weight_tensor = torch.ones_like(obs_buf[:, 11]) * heading_weight
@@ -383,11 +395,35 @@ def compute_ant_reward(
     alive_reward = torch.ones_like(potentials) * 0.5
     progress_reward = potentials - prev_potentials
 
-    # distance reward 
-    dist_reward = targets - goals
+    # snapbot2box euclidian distance reward
+    _sb_dist = torch.sqrt(torch.square(targets[...,0] - ego_pos[...,0]) + 
+                                 torch.square(targets[...,1] - ego_pos[...,1]))
+    sb_dist_reward = 1.0 / (1.0 + _sb_dist)
+    sb_dist_cost_scale = 0
+
+    # box2goal euclidian distance reward 
+    _bg_dist =  torch.sqrt(torch.square(targets[...,0] - goals[...,0]) + 
+                                 torch.square(targets[...,1] - goals[...,1]))
+    bg_dist_reward = 1.0 / (1.0 + _bg_dist)
+    bg_dist_cost_scale = 0
+
+    # total dist reward
+    dist_reward = sb_dist_reward * sb_dist_cost_scale + \
+                    bg_dist_reward * bg_dist_cost_scale
 
     total_reward = progress_reward + alive_reward + up_reward + heading_reward - \
-        actions_cost_scale * actions_cost - energy_cost_scale * electricity_cost - dof_at_limit_cost * joints_at_limit_cost_scale
+        actions_cost_scale * actions_cost - energy_cost_scale * electricity_cost - dof_at_limit_cost * joints_at_limit_cost_scale #+ dist_reward 
+
+
+    #print("\nprogress reward: ", progress_reward[0], 
+    #        "\nalive reward: ", alive_reward[0],
+    #        "\nup reward: ", up_reward[0], 
+    #        "\nheading reward: ", heading_reward[0], 
+    #        "\ndist_reward: ", dist_reward[0],
+    #        "\n energy penalties: ",
+    #        (actions_cost_scale * actions_cost)[0],
+    #        "\n", (energy_cost_scale * electricity_cost)[0],
+    #        "\n", (dof_at_limit_cost * joints_at_limit_cost_scale)[0]) 
 
     # adjust reward for fallen agents
     total_reward = torch.where(obs_buf[:, 0] < termination_height, torch.ones_like(total_reward) * death_cost, total_reward)
@@ -395,10 +431,6 @@ def compute_ant_reward(
     # reset agents
     reset = torch.where(obs_buf[:, 0] < termination_height, torch.ones_like(reset_buf), reset_buf)
     reset = torch.where(progress_buf >= max_episode_length - 1, torch.ones_like(reset_buf), reset)
-    # print(reset)
-    # print(obs_buf[:, 0])
-    # print(progress_buf)
-    # print()
 
     return total_reward, reset
 

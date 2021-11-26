@@ -49,7 +49,7 @@ sim:
     warm_start: 0.25
 
 task:
-  randomize: False
+  randomize: True
   randomization_params:
     # specify which attributes to randomize for each actor type and property
     frequency: 600   # Define how many environment steps between generating new randomizations
